@@ -22,8 +22,8 @@
 // THE USE OR OTHER DEALINGS IN THE SOFTWARE.                                //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef OCTVM_COMMON_HH
-#define OCTVM_COMMON_HH 1
+#ifndef OCTVM_COMMON_HPP
+#define OCTVM_COMMON_HPP 1
 
 #include <cstdint>
 #include <cstddef>
@@ -32,11 +32,6 @@
 #ifndef OCTVM_DONT_PERFORM_TESTS
 /// --- REQUIRED TESTS ---
 //  If these do NOT pass, OctaneVM will NOT supported on the current platform. 
-    #if defined(DEMODEFINE)
-        #error \
-        [COMPAT ERROR] : (CHAR_BIT != 8) : \
-        OctaneVM is NOT supported on platforms lacking octets.
-    #endif
 
     #if CHAR_BIT != 8
         #error \
@@ -86,7 +81,6 @@
 /// @brief The OctaneVM Namespace.
 ////////////////////////////////////////
 namespace Octane {
-
     /// Common Types
     ////////////////////////////////////////
     
@@ -99,6 +93,8 @@ namespace Octane {
     using u16  = std::uint16_t;
     using u32  = std::uint32_t;
     using u64  = std::uint64_t;
+    using f32  = float;
+    using f64  = double;
 }
 
-#endif /* !OCTVM_COMMON_HH */
+#endif /* !OCTVM_COMMON_HPP */
