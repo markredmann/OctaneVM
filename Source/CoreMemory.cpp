@@ -92,7 +92,8 @@ namespace Octane {
     /// FUNC: Allocate
     ////////////////////////////////////////
     MemoryAddress 
-    CoreAllocator::Allocate(const AddressSizeSpecificer Size, bool IsSysAlloc) 
+    CoreAllocator::Allocate(const AddressSizeSpecificer Size, 
+                            const AllocFlags Flags) 
     noexcept {
         /// This doesn't check for silly cases such as
         /// Size == 0. These should be checked
@@ -103,8 +104,9 @@ namespace Octane {
         ////////////////////////////////////////
         RAIIMutex Locker(m_AllocLock);
         MemoryAddress Address;
+        
         const u8 PaddingBytes = MemoryAddress::ComputePaddingBytes(Size);
-        cout << "DEBUG : PaddingBytes : " << (int)PaddingBytes << '\n';
+        // cout << "DEBUG : PaddingBytes : " << (int)PaddingBytes << '\n';
         
         // If a maximum cap is set
         if (m_MaxAllocations) {
@@ -124,12 +126,10 @@ namespace Octane {
             return nullptr;
         }
         // If successful, store the metadata and return.
-        Address.As._HeaderPtr->Flags.IsFree  = false;
-        Address.As._HeaderPtr->Flags.IsConst = false;
-        Address.As._HeaderPtr->Flags.IsSys   = IsSysAlloc;
-        Address.As._HeaderPtr->Padding       = PaddingBytes;
-        Address.As._HeaderPtr->Size          = Size;
-        Address.As._HeaderPtr->Log();
+        Address.As._HeaderPtr->Flags   = Flags;
+        Address.As._HeaderPtr->Size    = Size;
+        Address.As._HeaderPtr->Padding = PaddingBytes;
+        // Address.As._HeaderPtr->Log(); // DEBUG
         Address.As.BytePtr += sizeof(AllocationHeader);
         m_TotalAllocations += Size + sizeof(AllocationHeader) + PaddingBytes;
         ////////////////////////////////////////
@@ -165,7 +165,7 @@ namespace Octane {
     {
         // Allocate a new block to store the data in
         MemoryAddress NewAddress = Allocate(NewSize, 
-                                            Address.Header()->Flags.IsSys);
+                                            Address.Header()->Flags);
         if (NewAddress == nullptr)
             return m_LastError;
         

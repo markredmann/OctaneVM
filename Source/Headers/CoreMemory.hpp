@@ -46,20 +46,34 @@ namespace Octane {
     ////////////////////////////////////////
     using AddressSizeSpecificer = u32;
     
+    /// @brief A bitfield containing metadata
+    /// on how to treat an Allocation done
+    /// by either CoreAlocator or Hybrid.
+    ////////////////////////////////////////
+    struct AllocFlags {
+        bool  IsFree     : 1; // Has this Address been freed?
+        bool  IsConst    : 1; // Is this Address marked const? [unenforced]
+        bool  IsSys      : 1; // Is this Address allocated by the System?
+        bool  IsNonVital : 1; // Is this Address not vital for the System?
+        bool  IsHyAlloc  : 1; // Was this Address allocated via Hybrid?
+    } OctVM_SternPack;
+
+    static constexpr const AllocFlags DEFAULT_ALLOC_FLAGS = {
+        .IsFree     = 0,
+        .IsConst    = 0,
+        .IsSys      = 0,
+        .IsNonVital = 0,
+        .IsHyAlloc  = 0,
+    };
+    
     /// @brief A struct containing metadata
     /// regarding an Allocation returned
     /// by any of the OctaneVM Allocators.
     ////////////////////////////////////////
-    struct alignas(4) AllocationHeader {
-        struct AllocFlags {
-            bool  IsFree  : 1; // Has this Address been freed?
-            bool  IsConst : 1; // Is this Address marked const? [unenforced]
-            bool  IsSys   : 1; // Is this Address allocated by the System?
-        } OctVM_SternPack;
-
-        AllocFlags            Flags;   // Metadata Flags.
-        u8                    Padding; // Amount of padding bytes from 0-8.
+    struct AllocationHeader {
         AddressSizeSpecificer Size;    // The Size of the Allocation.
+        u8                    Padding; // Amount of padding bytes from 0-8.
+        AllocFlags            Flags;   // Metadata Flags.
 
         /// @brief Logs the metadata to std::cout
         ////////////////////////////////////////
@@ -342,12 +356,8 @@ namespace Octane {
             /// not check if Size is 0. Passing 0
             /// will return a "valid" MemoryAddress
             /// but further usage will be undefined behaviour.
-            /// @param IsSysAlloc Is this Allocation
-            /// one done internally by OctaneVM
-            /// for memory that should not be modified
-            /// by running programs? Please note
-            /// that this is just a hint for bookkeeping
-            /// and not enforced directly by the VM.
+            /// @param Flags A list of flags that will tell
+            /// OctaneVM how to handle this memory internally.
             /// @return A MemoryAddress pointing to
             /// the block if the Allocation was
             /// successful. Otherwise returns nullptr.
@@ -355,7 +365,7 @@ namespace Octane {
             /// GetLastError().
             ////////////////////////////////////////
             MemoryAddress Allocate(const AddressSizeSpecificer Size,
-                                   bool IsSysAlloc = false) noexcept;
+                        const AllocFlags Flags = DEFAULT_ALLOC_FLAGS) noexcept;
             
             /// @brief Deallocates the given MemoryAddress
             /// @param Address The MemoryAddress to free.
