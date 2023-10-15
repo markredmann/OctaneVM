@@ -55,7 +55,7 @@
     #error [COMPAT ERROR] : (__cplusplus < 201103L) : \
     OctaneVM is intended for use with C++17 or newer, however it supports \
     C++11. C++ versions earlier than this are not supported. Upgrade \
-    your compiler, or switch standard version to be -std=c++11 or higher.
+    your compiler, or switch standards version to be -std=c++11 or higher.
 #endif
 
 #ifndef OCTVM_DONT_PERFORM_TESTS
@@ -118,6 +118,14 @@
     // which is a suggestion rather than an order.
     #define OctVM_SternInline inline __attribute__((always_inline))
 #endif /* OCTVM_NO_STERN_INLINE */
+
+// If the compiler does not support __attribute__((__packed__))
+#ifdef OCTVM_NO_STERN_PACK
+    #define OctVM_SternPack 
+#else
+    #define OctVM_SternPack __attribute__((__packed__))
+#endif /* OCTVM_NO_STERN_PACK */
+
 
 
 /// @brief The OctaneVM Namespace.

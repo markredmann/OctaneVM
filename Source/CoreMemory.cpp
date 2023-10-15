@@ -39,8 +39,11 @@ namespace Octane {
         cout << "    Flags.IsFree    : " << BoolStr(Flags.IsFree) << '\n';
         cout << "    Flags.IsConst   : " << BoolStr(Flags.IsConst) << '\n';
         cout << "    Flags.IsSys     : " << BoolStr(Flags.IsSys) << '\n';
-        cout << "    Size            : " << Size << '\n';
-        cout << "    Total Size      : " << Size + sizeof(*this) << '\n';
+        cout << "    Padding Bytes   : " << (int)Padding << '\n';
+        cout << "    Usaable Size    : " << Size << '\n';
+        cout << "    Total Size      : "
+             << Size + sizeof(*this) + Padding << '\n';
+        
         MemoryAddress Addr = ( ((byte*)this) + sizeof(*this) );
         switch ( Size ) {
             case 0: {
@@ -100,12 +103,14 @@ namespace Octane {
         ////////////////////////////////////////
         RAIIMutex Locker(m_AllocLock);
         MemoryAddress Address;
+        const u8 PaddingBytes = MemoryAddress::ComputePaddingBytes(Size);
+        cout << "DEBUG : PaddingBytes : " << (int)PaddingBytes << '\n';
         
         // If a maximum cap is set
         if (m_MaxAllocations) {
             // Check if in bounds
-            if (m_TotalAllocations + (Size + sizeof(AllocationHeader)) 
-                > m_MaxAllocations)
+            if ( m_TotalAllocations + Size + PaddingBytes
+                 + sizeof(AllocationHeader) > m_MaxAllocations )
             {
                 m_LastError = MEMORY_HIT_VM_MAXIMUM;
                 return nullptr;
@@ -119,12 +124,14 @@ namespace Octane {
             return nullptr;
         }
         // If successful, store the metadata and return.
-        Address.As._HeaderPtr->Flags.IsFree   = false;
-        Address.As._HeaderPtr->Flags.IsConst  = false;
-        Address.As._HeaderPtr->Flags.IsSys    = IsSysAlloc;
-        Address.As._HeaderPtr->Size           = Size;
+        Address.As._HeaderPtr->Flags.IsFree  = false;
+        Address.As._HeaderPtr->Flags.IsConst = false;
+        Address.As._HeaderPtr->Flags.IsSys   = IsSysAlloc;
+        Address.As._HeaderPtr->Padding       = PaddingBytes;
+        Address.As._HeaderPtr->Size          = Size;
+        Address.As._HeaderPtr->Log();
         Address.As.BytePtr += sizeof(AllocationHeader);
-        m_TotalAllocations += Size + sizeof(AllocationHeader);
+        m_TotalAllocations += Size + sizeof(AllocationHeader) + PaddingBytes;
         ////////////////////////////////////////
         /// If QueryAllocatedSize is performed,
         /// it will return the correct size of

@@ -50,21 +50,22 @@ namespace Octane {
     /// regarding an Allocation returned
     /// by any of the OctaneVM Allocators.
     ////////////////////////////////////////
-    struct AllocationHeader {
+    struct alignas(4) AllocationHeader {
         struct AllocFlags {
             bool  IsFree  : 1; // Has this Address been freed?
             bool  IsConst : 1; // Is this Address marked const? [unenforced]
             bool  IsSys   : 1; // Is this Address allocated by the System?
-        };
+        } OctVM_SternPack;
 
-        AllocFlags            Flags; // Metadata Flags.
-        AddressSizeSpecificer Size;  // The Size of the Allocation.
+        AllocFlags            Flags;   // Metadata Flags.
+        u8                    Padding; // Amount of padding bytes from 0-8.
+        AddressSizeSpecificer Size;    // The Size of the Allocation.
 
         /// @brief Logs the metadata to std::cout
         ////////////////////////////////////////
         void Log(void) const noexcept;
     };
-    
+
     /// @brief An address to a block of
     /// memory that is allocated by
     /// a MemoryManager instance.
@@ -95,6 +96,24 @@ namespace Octane {
 
         /// Methods
         ////////////////////////////////////////
+
+            //////////////// FIXME: ////////////////
+            /// There is probably a faster way to do this
+            ////////////////////////////////////////
+            
+            /// @brief Computes the number of padding
+            /// bytes needed to append in order to
+            /// have any subsequent contiguous allocations
+            /// aligned by alignof(AllocationHeader).
+            /// @param AllocationSize The size of the given
+            /// Allocation..
+            /// @return A number between 0-8 dictating
+            /// how many bytes are required to be appended.
+            ////////////////////////////////////////
+            constexpr static OctVM_SternInline 
+            u8 ComputePaddingBytes(u32 AllocationSize) noexcept
+                { return (alignof(AllocationHeader)-AllocationSize) 
+                        % alignof(AllocationHeader); }
 
             /// @brief Prints metadata regarding this
             /// Allocation to std::cout.
@@ -163,10 +182,12 @@ namespace Octane {
             /// to generate this object. Useful for
             /// managing arrays.
             /// Note that this does not take into
-            /// account the size of the header itself.
-            /// For this, add sizeof(Octane::AllocationHeader)
-            /// to the returned value, or use
-            /// QueryTotalAllocatedSize
+            /// account the size of the header itself, or
+            /// the amount of padding bytes appended to
+            /// the Allocation. For this, use
+            /// QueryTotalAllocatedSize() to include
+            /// the total, or QueryContiguousSize()
+            /// to include just the padding size.
             ////////////////////////////////////////
             constexpr OctVM_SternInline 
             AddressSizeSpecificer QueryAllocatedSize(void) const noexcept
@@ -175,16 +196,37 @@ namespace Octane {
             }
 
             /// @brief Queries the allocated size of
+            /// this buffer including the amount of
+            /// padding bytes appended to the end of
+            /// this Allocation.
+            /// @return An integer containing the
+            /// size of the buffer plus the paddings.
+            /// Note that this does NOT include the
+            /// AllocationHeader. For this, use
+            /// QueryTotalAllocatedSize().
+            ////////////////////////////////////////
+            constexpr OctVM_SternInline 
+            AddressSizeSpecificer QueryContiguousSize(void) const noexcept
+            {
+                return (As._HeaderPtr[-1]).Size
+                       + (As._HeaderPtr[-1]).Padding;
+            }
+
+            /// @brief Queries the allocated size of
             /// this buffer including the size of its header
+            /// and the amount of padding bytes.
             /// @return An integer containing
             /// the total number of bytes that were
             /// passed into the Allocator, including
-            /// the AllocationHeader itself.
+            /// the AllocationHeader itself and
+            /// any trailing padding bytes.
             ////////////////////////////////////////
             constexpr OctVM_SternInline 
             AddressSizeSpecificer QueryTotalAllocatedSize(void) const noexcept
             {
-                return (As._HeaderPtr[-1]).Size + sizeof(AllocationHeader);
+                return (
+                    (As._HeaderPtr[-1]).Size +(As._HeaderPtr[-1]).Padding
+                    + sizeof(AllocationHeader) );
             }
 
             OctVM_SternInline AllocationHeader* Header(void) noexcept
