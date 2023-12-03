@@ -43,14 +43,12 @@
 /// macros here as well.
 ////////////////////////////////////////
 
-#if   (__cplusplus >= 202002L) // C++20
-    #define OctVM_WarnDiscard(WarningText) [[nodiscard(WarningText)]]
-#elif (__cplusplus >= 201703L) // C++17
-    #define OctVM_WarnDiscard(WarningText) [[nodiscard]]
+#if (__cplusplus >= 201703L) // C++17
+    #define OctVM_WarnDiscard [[nodiscard]]
 #elif (__cplusplus >= 201402L) // C++14
-    #define OctVM_WarnDiscard(WarningText) // Not supported in C++14
+    #define OctVM_WarnDiscard // Not supported in C++14
 #elif (__cplusplus >= 201103L) // C++11 - Earliest Supported Version!
-    #define OctVM_WarnDiscard(WarningText) // Not supported in C++11
+    #define OctVM_WarnDiscard // Not supported in C++11
 #else
     #error [COMPAT ERROR] : (__cplusplus < 201103L) : \
     OctaneVM is intended for use with C++17 or newer, however it supports \
@@ -106,6 +104,13 @@
 /** ! --- REQUIRED TESTS --- **/
 #endif /* !OCTVM_DONT_PERFORM_TESTS */
 
+//////////////// TODO: /////////////////
+/// Update this to work with C++11's
+/// [[attribute]] system instead of
+/// compiler-specific tat.
+////////////////////////////////////////
+
+
 // If the compiler does not support __attribute__((always_inline))
 #ifdef OCTVM_NO_STERN_INLINE
     // With Stern Inline disabled, the Compiler
@@ -127,26 +132,44 @@
 #endif /* OCTVM_NO_STERN_PACK */
 
 
+#define OCTVM_VERSION_MAJOR 0
+#define OCTVM_VERSION_MINOR 0
+#define OCTVM_VERSION_PATCH 0
+#define OCTVM_VERSION_STRING    "0.0.0"
+#define OCTVM_VERSION_STRINGLEN 5
 
-/// @brief The OctaneVM Namespace.
+
+/// @brief The Octane Virtual Machine,
+/// the heart of Rosetta ExpressLang.
 ////////////////////////////////////////
 namespace Octane {
-    /// Common Types
+    // Common Types
     ////////////////////////////////////////
     
-    using byte = std::uint8_t;
-    using i8   = std::int8_t;
-    using i16  = std::int16_t;
-    using i32  = std::int32_t;
-    using i64  = std::int64_t;
-    using u8   = std::uint8_t;
-    using u16  = std::uint16_t;
-    using u32  = std::uint32_t;
-    using u64  = std::uint64_t;
-    using f32  = float;  // Guaranteed by above checks
-    using f64  = double; // Guaranteed by above checks
+    /// Single byte. Same as Octane::u8
+    using byte = std::uint8_t;  
+    /// Guaranteed to be 8 Bits, signed 
+    using i8   = std::int8_t;   
+    /// Guaranteed to be 16 Bits, signed
+    using i16  = std::int16_t;  
+    /// Guaranteed to be 32 Bits, signed
+    using i32  = std::int32_t;  
+    /// Guaranteed to be 64 Bits, signed
+    using i64  = std::int64_t;  
+    /// Guaranteed to be 8 Bits, unsigned
+    using u8   = std::uint8_t;  
+    /// Guaranteed to be 16 Bits, unsigned
+    using u16  = std::uint16_t; 
+    /// Guaranteed to be 32 Bits, unsigned
+    using u32  = std::uint32_t; 
+    /// Guaranteed to be 64 Bits, unsigned
+    using u64  = std::uint64_t; 
+    /// 32bit floating point. Guaranteed by above checks
+    using f32  = float;
+    /// 64bit floating point. Guaranteed by above checks
+    using f64  = double; 
 
-    /// Common Functions
+    // Common Functions
     ////////////////////////////////////////
     
     /// @brief Returns a String of the boolean.
@@ -204,7 +227,7 @@ namespace Octane {
     /// @return True if both Addresses
     /// contain equal memory, otherwise false.
     ////////////////////////////////////////
-    extern bool QuickCmp    (const void* A,      const void* B, 
+    extern bool QuickCpp    (const void* A,      const void* B, 
                              const u32 ALen = 0, const u32 BLen = 0) noexcept;
     
 }

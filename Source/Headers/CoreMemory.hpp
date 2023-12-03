@@ -31,58 +31,86 @@
 
 namespace Octane {
     
-    // In OctaneVM, all memory allocations
-    // store a 32bit integer denoting the
-    // allocated size of the buffer at
-    // the start of the given memory address
-    // subtracted by 32bits (4 bytes).
-    // For allocations larger than 4GiB,
-    // you will have to split it between
-    // two (or more) allocations.
-    // Frankly, there is little to no reason
-    // why you should ever need to allocate
-    // 4GiB in contiguous (or even virtual)
-    // address space
+    /// In OctaneVM, all memory allocations
+    /// store a 32bit integer denoting the
+    /// allocated size of the buffer at
+    /// the start of the given memory address
+    /// subtracted by 64bits (8 bytes), as
+    /// there is other metadata stored
+    /// alongside it. See Octane::AllocationHeader.
+    /// For allocations larger than 4GiB,
+    /// you will have to split it between
+    /// two (or more) allocations.
+    /// Frankly, there is little—if any—reason
+    /// to ever allocate 4GiB in contiguous
+    /// address space, virtual or not.
     ////////////////////////////////////////
     using AddressSizeSpecificer = u32;
     
+    enum SizeLiterals {
+        KiB = 1024,
+        MiB = 1024 * 1024,
+        GiB = 1024 * 1024 * 1024,
+    };
+
+    constexpr static inline u64 ToKiB(const u64 Count) noexcept
+        { return Count * SizeLiterals::KiB; }
+
+    constexpr static inline u64 ToMiB(const u64 Count) noexcept
+        { return Count * SizeLiterals::MiB; }
+
+    constexpr static inline u64 ToGiB(const u64 Count) noexcept
+        { return Count * SizeLiterals::GiB; }
+
     /// @brief A bitfield containing metadata
     /// on how to treat an Allocation done
     /// by either CoreAlocator or Hybrid.
     ////////////////////////////////////////
     struct AllocFlags {
-        bool  IsFree     : 1; // Has this Address been freed?
-        bool  IsConst    : 1; // Is this Address marked const? [unenforced]
-        bool  IsSys      : 1; // Is this Address allocated by the System?
-        bool  IsNonVital : 1; // Is this Address not vital for the System?
-        bool  IsHyAlloc  : 1; // Was this Address allocated via Hybrid?
+            // Has this Address been freed?
+        bool  IsFree     : 1; 
+            // Is this Address marked const? [unenforced]
+        bool  IsConst    : 1; 
+            // Is this Address allocated by the System?
+        bool  IsSys      : 1; 
+            // Is this Address not vital for the System?
+        bool  IsNonVital : 1; 
+            // Was this Address allocated via Hybrid Allocator?
+        bool  IsHyAlloc  : 1; 
+            // Was this Address allocated via Linear Allocator?
+        bool  IsLiAlloc  : 1; 
     } OctVM_SternPack;
 
     static constexpr const AllocFlags DEFAULT_ALLOC_FLAGS = {
-        .IsFree     = 0,
-        .IsConst    = 0,
-        .IsSys      = 0,
-        .IsNonVital = 0,
-        .IsHyAlloc  = 0,
+        0, // IsFree    
+        0, // IsConst   
+        0, // IsSys     
+        0, // IsNonVital
+        0, // IsHyAlloc 
+        0, // IsLiAlloc 
     };
     
     /// @brief A struct containing metadata
     /// regarding an Allocation returned
     /// by any of the OctaneVM Allocators.
     ////////////////////////////////////////
-    struct AllocationHeader {
-        AddressSizeSpecificer Size;    // The Size of the Allocation.
-        u8                    Padding; // Amount of padding bytes from 0-8.
-        AllocFlags            Flags;   // Metadata Flags.
+    struct AllocationHeader { 
+            /// The Size of the Allocation.
+        AddressSizeSpecificer Size;    
+            /// Amount of padding bytes.
+        u16                   Padding; 
+            /// Metadata Flags.
+        AllocFlags            Flags;   
 
         /// @brief Logs the metadata to std::cout
         ////////////////////////////////////////
-        void Log(void) const noexcept;
+        void Log(const char* const Prefix = "") const noexcept;
     };
 
     /// @brief An address to a block of
     /// memory that is allocated by
-    /// a MemoryManager instance.
+    /// an Allocator, such as CoreAllocator
+    /// or HybridAllocator.
     ////////////////////////////////////////
     class MemoryAddress {
         public:
@@ -113,6 +141,10 @@ namespace Octane {
 
             //////////////// FIXME: ////////////////
             /// There is probably a faster way to do this
+            /// On top of this, we might need to lock
+            /// this to 8 bytes again. alignof is
+            /// not taking into account that DWORDs
+            /// might be stored in contiguous space here.
             ////////////////////////////////////////
             
             /// @brief Computes the number of padding
@@ -120,20 +152,22 @@ namespace Octane {
             /// have any subsequent contiguous allocations
             /// aligned by alignof(AllocationHeader).
             /// @param AllocationSize The size of the given
-            /// Allocation..
+            /// Allocation.
             /// @return A number between 0-8 dictating
             /// how many bytes are required to be appended.
             ////////////////////////////////////////
             constexpr static OctVM_SternInline 
             u8 ComputePaddingBytes(u32 AllocationSize) noexcept
-                { return (alignof(AllocationHeader)-AllocationSize) 
-                        % alignof(AllocationHeader); }
+                { return (alignof(void*)-AllocationSize) 
+                        % alignof(void*); }
+                // { return (alignof(AllocationHeader)-AllocationSize) 
+                //         % alignof(AllocationHeader); }
 
             /// @brief Prints metadata regarding this
             /// Allocation to std::cout.
             ////////////////////////////////////////
-            OctVM_SternInline void Log(void) const noexcept
-                { (As._HeaderPtr - 1)->Log(); }
+            OctVM_SternInline void Log(const char* const Prefix = "") const noexcept
+                { (As._HeaderPtr - 1)->Log(Prefix); }
 
             /// @brief Casts the Address into a 
             /// pointer of the given templated type.
@@ -205,9 +239,7 @@ namespace Octane {
             ////////////////////////////////////////
             constexpr OctVM_SternInline 
             AddressSizeSpecificer QueryAllocatedSize(void) const noexcept
-            {
-                return (As._HeaderPtr[-1]).Size;
-            }
+                { return (As._HeaderPtr[-1]).Size; }
 
             /// @brief Queries the allocated size of
             /// this buffer including the amount of
@@ -221,10 +253,8 @@ namespace Octane {
             ////////////////////////////////////////
             constexpr OctVM_SternInline 
             AddressSizeSpecificer QueryContiguousSize(void) const noexcept
-            {
-                return (As._HeaderPtr[-1]).Size
-                       + (As._HeaderPtr[-1]).Padding;
-            }
+                { return (As._HeaderPtr[-1]).Size
+                    + (As._HeaderPtr[-1]).Padding; }
 
             /// @brief Queries the allocated size of
             /// this buffer including the size of its header
@@ -237,11 +267,9 @@ namespace Octane {
             ////////////////////////////////////////
             constexpr OctVM_SternInline 
             AddressSizeSpecificer QueryTotalAllocatedSize(void) const noexcept
-            {
-                return (
-                    (As._HeaderPtr[-1]).Size +(As._HeaderPtr[-1]).Padding
-                    + sizeof(AllocationHeader) );
-            }
+                { return (   (As._HeaderPtr[-1]).Size 
+                           + (As._HeaderPtr[-1]).Padding
+                           + sizeof(AllocationHeader) ); }
 
             OctVM_SternInline AllocationHeader* Header(void) noexcept
                 { return (As._HeaderPtr - 1); }
@@ -303,7 +331,18 @@ namespace Octane {
         // because the underlying operating system is out
         // of memory to allocate, be it virtual or physical.
         // Either deallocate unused memory or terminate execution.
-        MEMORY_HIT_OS_MAXIMUM
+        MEMORY_HIT_OS_MAXIMUM,
+        // The attempted Allocation was deemed too large to be accommodated
+        // by this Allocator. 
+        // In CoreAllocator: This would be an allocation greater than 4GiB
+        // (2**32 or 4 * 1024*1024*1024)
+        // In HybridAllocator: this would be either greater than 4KiB
+        // (2 * 1024*1024) or it does not fit in the memory space,
+        // and must be backed instead by CoreAllocator.
+        MEMORY_SIZE_TOO_LARGE,
+        // The attempted Allocation has no size, and thus
+        // cannot be completed.
+        MEMORY_SIZE_IS_ZERO
     };
 
     /// @brief The Core Allocator for
@@ -314,28 +353,38 @@ namespace Octane {
     ////////////////////////////////////////
     class CoreAllocator {
         private:
-            // The total number of Bytes allocated by this Allocator.
-            // This number is signed as to be able to detect if
-            // more deallocations have been done than allocations,
-            // which would indicate that this Allocator is being used
-            // to free memory which does not belong to it.
-            i64         m_TotalAllocations = 0;
-            // The maximum amount of bytes that this Allocator
-            // is allowed to allocate. Typically Controlled by 
-            // the VM instance, and can usually change even at
-            // runtime. Leave 0 for no VM-imposed hard-cap.
+            /// The total number of Bytes allocated by this Allocator
+            /// to be used for Program or Storage-mapped Object memory.
+            /// This number is signed as to be able to detect if
+            /// more deallocations have been done than allocations,
+            /// which would indicate that this Allocator is being used
+            /// to free memory which does not belong to it.
+            i64         m_ObjectAllocations = 0;
+            /// The total number of Bytes allocated by this Allocator
+            /// to be used for internal VM implementation memory.
+            /// This number is signed as to be able to detect if
+            /// more deallocations have been done than allocations,
+            /// which would indicate that this Allocator is being used
+            /// to free memory which does not belong to it.
+            i64         m_SystemAllocations = 0;
+            /// The maximum amount of bytes that this Allocator
+            /// is allowed to allocate. Typically Controlled by 
+            /// the VM instance, and can usually change even at
+            /// runtime. Leave 0 for no VM-imposed hard-cap.
             u64         m_MaxAllocations   = 0;
-            // The result of the last allocation error.
-            // Does not reset on a good allocation. Instead, clear
-            // manually by using ClearLastError().
+            /// The result of the last allocation error.
+            /// Does not reset on a good allocation. Instead, clear
+            /// manually by using ClearLastError().
             MemoryError m_LastError        = MEMORY_OK;
-            // A Mutex which will lock this Allocator when:
-            //  1: Allocating Memory
-            //  2: Reallocating Memory
-            //  3: Deallocating Memory
-            //  4: Validating Memory
+            /// A Mutex which will lock this Allocator when:
+            ///  1: Allocating Memory
+            ///  2: Reallocating Memory
+            ///  3: Deallocating Memory
+            ///  4: Validating Memory
             Mutex       m_AllocLock;
         public:
+            constexpr static const u64 MAX_ALLOC_SIZE = ToGiB(4);
+            
             /// @brief Validates the Memory of this Allocator.
             /// Effectively just ensures that the internal 
             /// memory is not at or beyond the maximum
@@ -346,8 +395,7 @@ namespace Octane {
             MemoryError   ValidateMemory(void)                       noexcept;
             
             ////////////////////////////////////////
-            OctVM_WarnDiscard("The returned Address MUST be managed manually!")
-            /// @brief Allocates a block of memory
+            /// @brief Requests a block of memory
             /// by using direct calls to the OS.
             /// @param Size The Size of the Allocation.
             /// Please note that OctaneVM does not support 
@@ -364,18 +412,84 @@ namespace Octane {
             /// To see what caused the error, use
             /// GetLastError().
             ////////////////////////////////////////
-            MemoryAddress Allocate(const AddressSizeSpecificer Size,
+            OctVM_WarnDiscard
+            MemoryAddress Request(const AddressSizeSpecificer Size,
                         const AllocFlags Flags = DEFAULT_ALLOC_FLAGS) noexcept;
-            
+
+            ////////////////////////////////////////
+            /// @brief Requests an array of Objects of a 
+            /// given Type (or a single instance if
+            /// Count is not specified) and calls its
+            /// default constructor.
+            /// @param Count The amount of Objects of the
+            /// given Type to allocate. Ensure that th
+            /// @param Flags A list of flags that will tell
+            /// OctaneVM how to handle this memory internally.
+            /// @return A MemoryAddress pointing to
+            /// the block if the Allocation was
+            /// successful. Otherwise returns nullptr.
+            /// To see what caused the error, use
+            /// GetLastError().
+            ////////////////////////////////////////
+            template <typename Type, typename ... Args> OctVM_WarnDiscard
+            Type* Request(const u32 Count = 1, const AllocFlags
+                                    Flags = DEFAULT_ALLOC_FLAGS,
+                            Args... Params) noexcept
+                {
+                    // Sanity check our inputs first
+                    if ( !Count )
+                        { return nullptr; }
+                    if ( sizeof(Type) * Count > MAX_ALLOC_SIZE )
+                        { m_LastError = MEMORY_SIZE_TOO_LARGE;
+                          return nullptr; }
+
+                    // Do the actual raw memory request
+                    MemoryAddress Address = Request(sizeof(Type)*Count, Flags);
+                    if ( Address ) {
+                        Type* AutoCast = Address.Cast<Type>();
+                        
+                        // Call constructor(s)
+                        for( u32 i = 0; i < Count; i++ ) 
+                            ::new(AutoCast + i) Type(Params...);
+                        
+                        return AutoCast;
+                    }
+
+                    return nullptr;
+                }
+
             /// @brief Deallocates the given MemoryAddress
             /// @param Address The MemoryAddress to free.
             /// WARNING: ONLY PROVIDE A MEMORYADDRESS
             /// THAT WAS SUPPLIED BY THIS ALLOCATOR INSTANCE!
             ////////////////////////////////////////
-            void          Deallocate(MemoryAddress Address)          noexcept;
-            
+            void          Release(MemoryAddress Address)          noexcept;
+
+            /// @brief Deallocates the given Object(s), and
+            /// calls their destructors.
+            /// @param Address The Object(s) to free.
+            /// WARNING: ONLY PROVIDE AN OBJECT THAT
+            /// WAS SUPPLIED BY THIS ALLOCATOR INSTANCE!
             ////////////////////////////////////////
-            OctVM_WarnDiscard("This could potentially fail!")
+            template <typename Type>
+            void          Release(Type* Address)                  noexcept
+                {
+                    MemoryAddress OriginalAddr = MemoryAddress(Address);
+
+                    /// NOTE: This could cause serious problems
+                    /// if the wrong type is passed...
+                    ////////////////////////////////////////
+                    u32 Count = OriginalAddr.QueryAllocatedSize() 
+                              / sizeof(Type);
+
+                    for (u32 i = 0; i < Count; i++ )
+                        Address[i].~Type();
+
+                    Release(OriginalAddr);
+                }
+
+
+            ////////////////////////////////////////
             /// @brief Reallocates this block of memory
             /// to a new size and copies over the data.
             /// @param Address A Reference to a MemoryAddress
@@ -386,8 +500,9 @@ namespace Octane {
             /// was successful, otherwise will return
             /// the appropriate error code.
             ////////////////////////////////////////
-            MemoryError   Reallocate(MemoryAddress& Address, 
-                       const AddressSizeSpecificer  NewSize)         noexcept;
+            OctVM_WarnDiscard
+            MemoryError   Resize(MemoryAddress& Address, 
+                   const AddressSizeSpecificer  NewSize)          noexcept;
             
             /// @brief Returns the last error thrown
             /// by this Allocator. Note that this
@@ -417,8 +532,7 @@ namespace Octane {
             ////////////////////////////////////////
             constexpr OctVM_SternInline 
             i64 GetTotalAllocations(void) const noexcept
-                { return m_TotalAllocations; }
-            constexpr OctVM_SternInline 
+                { return m_SystemAllocations + m_ObjectAllocations; }
 
             /// @brief Returns the maximum amount of
             /// bytes that this CoreAllocator can
@@ -428,6 +542,7 @@ namespace Octane {
             /// does not impose a hard-cap on the
             /// number of allocations.
             ////////////////////////////////////////
+            constexpr OctVM_SternInline 
             u64 GetMaxAllocations(void) const noexcept
                 { return m_MaxAllocations; }
 

@@ -32,43 +32,59 @@ using std::cout;
 namespace Octane {
     
     /// FUNC: Header Log
+    /// Messy, but its only for internal
+    /// testing anyway so it doesnt matter.
+    /// Debug code is debug code.
     ////////////////////////////////////////
-    void AllocationHeader::Log(void) const noexcept {
-        cout << "Allocation : " << (void*)this << '\n';
-        cout << "    Exposed Address : " << (AllocationHeader*)this+1 << '\n';
-        cout << "    Flags.IsFree    : " << BoolStr(Flags.IsFree) << '\n';
-        cout << "    Flags.IsConst   : " << BoolStr(Flags.IsConst) << '\n';
-        cout << "    Flags.IsSys     : " << BoolStr(Flags.IsSys) << '\n';
-        cout << "    Padding Bytes   : " << (int)Padding << '\n';
-        cout << "    Usaable Size    : " << Size << '\n';
-        cout << "    Total Size      : "
+    void AllocationHeader::Log(const char* const Prefix) const noexcept {
+        cout << Prefix << "Allocation : " << (void*)this << '\n';
+        cout << Prefix;
+        cout << "    Exposed Address  : " << (AllocationHeader*)this+1 << '\n';
+        cout << Prefix;
+        cout << "    Flags.IsFree     : " << BoolStr(Flags.IsFree) << '\n';
+        cout << Prefix;
+        cout << "    Flags.IsConst    : " << BoolStr(Flags.IsConst) << '\n';
+        cout << Prefix;
+        cout << "    Flags.IsSys      : " << BoolStr(Flags.IsSys) << '\n';
+        cout << Prefix;
+        cout << "    Flags.IsNonVital : " << BoolStr(Flags.IsNonVital) << '\n';
+        cout << Prefix;
+        cout << "    Flags.IsHyAlloc  : " << BoolStr(Flags.IsHyAlloc) << '\n';
+        cout << Prefix;
+        cout << "    Padding Bytes    : " << (int)Padding << '\n';
+        cout << Prefix;
+        cout << "    Requested Size   : " << Size << '\n';
+        cout << Prefix;
+        cout << "    Contiguous Size  : " << Size + Padding << '\n';
+        cout << Prefix;
+        cout << "    Total Size       : "
              << Size + sizeof(*this) + Padding << '\n';
         
         MemoryAddress Addr = ( ((byte*)this) + sizeof(*this) );
         switch ( Size ) {
             case 0: {
-                cout << "  [SIZE IS 0! DO NOT USE THIS POINTER!]\n";
+                cout << Prefix << "  [SIZE IS 0! DO NOT USE THIS POINTER!]\n";
             break;}
 
             case sizeof(u8): {
-                cout << "    Data [i8: " << (i16)(*Addr.As.i8Ptr) << ", u8: ";
-                cout << (u16)(*Addr.As.u8Ptr) << ", char: ";
-                cout << (char)(*Addr.As.i8Ptr) << "]\n";
+                cout << Prefix << "    Data [i8: " << (i16)(*Addr.As.i8Ptr) 
+                     << ", u8: " << (u16)(*Addr.As.u8Ptr) << ", char: "
+                     << (char)(*Addr.As.i8Ptr) << "]\n";
             break;}
             
             case sizeof(u16): {
-                cout << "    Data [i16: " << (i16)(*Addr.As.i16Ptr) << ", u16: ";
-                cout << (u16)(*Addr.As.u16Ptr) << "]\n";
+                cout << Prefix << "    Data [i16: " << (i16)(*Addr.As.i16Ptr) 
+                     << ", u16: " << (u16)(*Addr.As.u16Ptr) << "]\n";
             break;}
 
             case sizeof(u32): {
-                cout << "    Data [i32: " << (i32)(*Addr.As.i32Ptr) << ", u32: ";
-                cout << (u32)(*Addr.As.u32Ptr) << "]\n";
+                cout << Prefix << "    Data [i32: " << (i32)(*Addr.As.i32Ptr) 
+                     << ", u32: " << (u32)(*Addr.As.u32Ptr) << "]\n";
             break;}
 
             case sizeof(u64): {
-                cout << "    Data [i64: " << (i64)(*Addr.As.i64Ptr) << ", u64: ";
-                cout << (u64)(*Addr.As.u64Ptr) << "]\n";
+                cout << Prefix << "    Data [i64: " << (i64)(*Addr.As.i64Ptr) 
+                     << ", u64: " << (u64)(*Addr.As.u64Ptr) << "]\n";
             break;}
         }
     }
@@ -80,43 +96,51 @@ namespace Octane {
         RAIIMutex Locker(m_AllocLock);
         m_LastError = MEMORY_OK;
         
-        // If m_MaxAllocations is 0, do not impose a hard-cap.
-        if (m_MaxAllocations && m_TotalAllocations >= m_MaxAllocations)
-            m_LastError = MEMORY_HIT_OS_MAXIMUM;
-        if (m_TotalAllocations < 0)
+        // -Wsign-compare flipped out here before,
+        // so check if our allocations are negative first, then
+        // run the comparison.
+
+        if ( m_ObjectAllocations < 0 || m_SystemAllocations < 0 )
+        {
             m_LastError = MEMORY_NEGATIVE_MEMORY_USAGE;
+            return m_LastError;
+        }
+
+        // If m_MaxAllocations is 0, do not impose a hard-cap.
+        if ( m_MaxAllocations &&
+            (u64)GetTotalAllocations() >= m_MaxAllocations )
+        {
+            m_LastError = MEMORY_HIT_OS_MAXIMUM;
+            return m_LastError;
+        }
         
-        return m_LastError;
+        return MEMORY_OK;
     }
 
     /// FUNC: Allocate
     ////////////////////////////////////////
     MemoryAddress 
-    CoreAllocator::Allocate(const AddressSizeSpecificer Size, 
+    CoreAllocator::Request(const AddressSizeSpecificer Size, 
                             const AllocFlags Flags) 
     noexcept {
-        /// This doesn't check for silly cases such as
-        /// Size == 0. These should be checked
-        /// when the allocator is called.
-        /// Don't waste cycles baby-proofing
-        /// what is SUPPOSED to be fast code
-        /// ONLY to be used by the internal systems.
+        /// Babyproofing has won over
         ////////////////////////////////////////
+        if ( !Size ) 
+            { m_LastError = MEMORY_SIZE_IS_ZERO;
+              return nullptr; }
+
         RAIIMutex Locker(m_AllocLock);
         MemoryAddress Address;
         
         const u8 PaddingBytes = MemoryAddress::ComputePaddingBytes(Size);
-        // cout << "DEBUG : PaddingBytes : " << (int)PaddingBytes << '\n';
         
         // If a maximum cap is set
         if (m_MaxAllocations) {
             // Check if in bounds
-            if ( m_TotalAllocations + Size + PaddingBytes
+            if ( GetTotalAllocations() + Size + PaddingBytes
                  + sizeof(AllocationHeader) > m_MaxAllocations )
-            {
-                m_LastError = MEMORY_HIT_VM_MAXIMUM;
-                return nullptr;
-            }
+            { m_LastError = MEMORY_HIT_VM_MAXIMUM;
+              return nullptr; }
         }
         // Allocate Block, plus the size of the AllocationHeader
         Address = ::operator new( (Size + sizeof(AllocationHeader)),
@@ -129,9 +153,13 @@ namespace Octane {
         Address.As._HeaderPtr->Flags   = Flags;
         Address.As._HeaderPtr->Size    = Size;
         Address.As._HeaderPtr->Padding = PaddingBytes;
-        // Address.As._HeaderPtr->Log(); // DEBUG
         Address.As.BytePtr += sizeof(AllocationHeader);
-        m_TotalAllocations += Size + sizeof(AllocationHeader) + PaddingBytes;
+        if ( Flags.IsSys )
+            m_SystemAllocations += Size + sizeof(AllocationHeader) 
+                                        + PaddingBytes;
+        else
+            m_ObjectAllocations += Size + sizeof(AllocationHeader) 
+                                        + PaddingBytes;
         ////////////////////////////////////////
         /// If QueryAllocatedSize is performed,
         /// it will return the correct size of
@@ -144,7 +172,7 @@ namespace Octane {
 
     /// FUNC: Deallocate
     ////////////////////////////////////////
-    void CoreAllocator::Deallocate(MemoryAddress Address) noexcept {
+    void CoreAllocator::Release(MemoryAddress Address) noexcept {
         /// Once again, not checking for numbskulls
         /// supplying nullptrs or invalid addresses
         /// into this function. Use at your own risk.
@@ -153,19 +181,23 @@ namespace Octane {
         RAIIMutex Locker(m_AllocLock);
         
         AddressSizeSpecificer Size = Address.QueryTotalAllocatedSize();
-        ::operator delete(Address.As.BytePtr - sizeof(AllocationHeader));
-        m_TotalAllocations -= Size;
+        if ( Address.Header()->Flags.IsSys )
+            m_SystemAllocations -= Size;
+        else
+            m_ObjectAllocations -= Size;
+        
+        ::operator delete( (void*)(&Address.As._HeaderPtr[-1]) );
     }
 
     /// FUNC: Reallocate
     ////////////////////////////////////////
     MemoryError 
-    CoreAllocator::Reallocate(MemoryAddress& Address, 
+    CoreAllocator::Resize(MemoryAddress& Address, 
                 const AddressSizeSpecificer NewSize) noexcept 
     {
         // Allocate a new block to store the data in
-        MemoryAddress NewAddress = Allocate(NewSize, 
-                                            Address.Header()->Flags);
+        MemoryAddress NewAddress = Request(NewSize, 
+                                           Address.Header()->Flags);
         if (NewAddress == nullptr)
             return m_LastError;
         
@@ -177,7 +209,7 @@ namespace Octane {
             memcpy(NewAddress.As.VoidPtr, Address.As.VoidPtr, NewSize);
         
         // Free the old data
-        Deallocate(Address);
+        Release(Address);
         // Set the reference to the new address
         Address = NewAddress;
         

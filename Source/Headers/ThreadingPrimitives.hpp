@@ -28,7 +28,7 @@
 #include <thread>
 #include <mutex>
 
-namespace  Octane{
+namespace Octane {
     /// @brief Mutual Exclusion Lock.
     /// Provided by the Standard Template
     /// Library.
