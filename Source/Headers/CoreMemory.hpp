@@ -47,9 +47,15 @@ namespace Octane {
     ////////////////////////////////////////
     using AddressSizeSpecificer = u32;
     
+    /// @brief Quick literals for use with
+    /// memory allocation.
+    ////////////////////////////////////////
     enum SizeLiterals {
+        /// One Kibibyte (1024 Bytes)
         KiB = 1024,
+        /// One Mebibyte (1024 Kibibytes)
         MiB = 1024 * 1024,
+        /// One Gibibyte (1024 Mebibytes)
         GiB = 1024 * 1024 * 1024,
     };
 
@@ -67,17 +73,17 @@ namespace Octane {
     /// by either CoreAlocator or Hybrid.
     ////////////////////////////////////////
     struct AllocFlags {
-            // Has this Address been freed?
+            /// Has this Address been freed?
         bool  IsFree     : 1; 
-            // Is this Address marked const? [unenforced]
+            /// Is this Address marked const? [unenforced]
         bool  IsConst    : 1; 
-            // Is this Address allocated by the System?
+            /// Is this Address allocated by the System?
         bool  IsSys      : 1; 
-            // Is this Address not vital for the System?
+            /// Is this Address not vital for the System?
         bool  IsNonVital : 1; 
-            // Was this Address allocated via Hybrid Allocator?
+            /// Was this Address allocated via Hybrid Allocator?
         bool  IsHyAlloc  : 1; 
-            // Was this Address allocated via Linear Allocator?
+            /// Was this Address allocated via Linear Allocator?
         bool  IsLiAlloc  : 1; 
     } OctVM_SternPack;
 
@@ -114,22 +120,36 @@ namespace Octane {
     ////////////////////////////////////////
     class MemoryAddress {
         public:
-        /// Members
-        ////////////////////////////////////////
+            /// Exposed list of predefined pointer casts.
             union _addr_union {
-                void* VoidPtr;
-                byte* BytePtr;
-                u8*   u8Ptr;   // Same as using As.BytePtr
-                u16*  u16Ptr; 
-                u32*  u32Ptr; 
-                u64*  u64Ptr; 
-                i8*   i8Ptr;   // Same as using As.BytePtr
-                i16*  i16Ptr; 
-                i32*  i32Ptr; 
-                i64*  i64Ptr; 
+                /// Cast to a void*
+                void* VoidPtr; 
+                /// Cast to a byte*
+                byte* BytePtr; 
+                /// Cast to a u8* (Same as using As.BytePtr)
+                u8*   u8Ptr;
+                /// Cast to a u16*
+                u16*  u16Ptr;
+                /// Cast to a u32*
+                u32*  u32Ptr;
+                /// Cast to a u64*
+                u64*  u64Ptr;
+                /// Cast to a i8*
+                i8*   i8Ptr; 
+                /// Cast to a i16*
+                i16*  i16Ptr;
+                /// Cast to a i32*
+                i32*  i32Ptr;
+                /// Cast to a i64*
+                i64*  i64Ptr;
                 // Only to be used in internals //
                 AllocationHeader* _HeaderPtr;
-            } As;
+            };
+
+            /// Can be used to cast this Memory Address to a 
+            /// a set of predefined pointers without calling
+            /// Cast<Type>()
+            _addr_union As;
         /// Constructors
         ////////////////////////////////////////
             OctVM_SternInline MemoryAddress(void) noexcept = default;
@@ -311,37 +331,37 @@ namespace Octane {
     /// errors when using any Allocator.
     ////////////////////////////////////////
     enum MemoryError : u8 {
-        // Memory is valid.
+        /// Memory is valid.
         MEMORY_OK,
-        // The amount of total deallocations is
-        // greater than the amount of total allocations.
-        // This would mean that this Allocator is
-        // deallocating memory that was not allocated by
-        // this Allocator.
+        /// The amount of total deallocations is
+        /// greater than the amount of total allocations.
+        /// This would mean that this Allocator is
+        /// deallocating memory that was not allocated by
+        /// this Allocator.
         MEMORY_NEGATIVE_MEMORY_USAGE,
-        // This Allocator cannot allocate any more memory
-        // because the amount of total allocations is already
-        // at the amount of this Allocator's maximum allocations,
-        // or the previous attempted allocation 
-        // would have surpassed the maximum.
-        // Either deallocate unused memory, or increase the maximum
-        // amount by using SetMaxAllocations() on the VM's CoreAllocator.
+        /// This Allocator cannot allocate any more memory
+        /// because the amount of total allocations is already
+        /// at the amount of this Allocator's maximum allocations,
+        /// or the previous attempted allocation 
+        /// would have surpassed the maximum.
+        /// Either deallocate unused memory, or increase the maximum
+        /// amount by using SetMaxAllocations() on the VM's CoreAllocator.
         MEMORY_HIT_VM_MAXIMUM,
-        // This Allocator cannot allocate any more memory
-        // because the underlying operating system is out
-        // of memory to allocate, be it virtual or physical.
-        // Either deallocate unused memory or terminate execution.
+        /// This Allocator cannot allocate any more memory
+        /// because the underlying operating system is out
+        /// of memory to allocate, be it virtual or physical.
+        /// Either deallocate unused memory or terminate execution.
         MEMORY_HIT_OS_MAXIMUM,
-        // The attempted Allocation was deemed too large to be accommodated
-        // by this Allocator. 
-        // In CoreAllocator: This would be an allocation greater than 4GiB
-        // (2**32 or 4 * 1024*1024*1024)
-        // In HybridAllocator: this would be either greater than 4KiB
-        // (2 * 1024*1024) or it does not fit in the memory space,
-        // and must be backed instead by CoreAllocator.
+        /// The attempted Allocation was deemed too large to be accommodated
+        /// by this Allocator. 
+        /// In CoreAllocator: This would be an allocation greater than 4GiB
+        /// (2**32 or 4 * 1024*1024*1024)
+        /// In HybridAllocator: this would be either greater than 4KiB
+        /// (2 * 1024*1024) or it does not fit in the memory space,
+        /// and must be backed instead by CoreAllocator.
         MEMORY_SIZE_TOO_LARGE,
-        // The attempted Allocation has no size, and thus
-        // cannot be completed.
+        /// The attempted Allocation has no size, and thus
+        /// cannot be completed.
         MEMORY_SIZE_IS_ZERO
     };
 

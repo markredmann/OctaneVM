@@ -140,7 +140,7 @@
 
 
 /// @brief The Octane Virtual Machine,
-/// the heart of Rosetta ExpressLang.
+/// heart of Rosetta ExpressLang.
 ////////////////////////////////////////
 namespace Octane {
     // Common Types
