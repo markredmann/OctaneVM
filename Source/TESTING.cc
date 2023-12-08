@@ -22,6 +22,8 @@ class DemoType {
 int main(void) {
     CoreAllocator Memory;
 
+    int* a = Memory.Request<int>(1, DEFAULT_ALLOC_FLAGS, 42);
+    cout << *a << '\n';
     // HyChunk Chunk;
     // Chunk.Init(&Memory);
     // cout << "--- CHUNK INIT ---\n";
