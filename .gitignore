@@ -1,3 +1,5 @@
+.DS_Store
 .vscode
 Source/a.out
 Source/Demo.cc
+Doxy*
