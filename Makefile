@@ -37,10 +37,15 @@ SRCS_FOLDER=Source
 SRCS_HEADERS=Source/Headers
 SRCS_EXT=.cpp
 SRCS=$(SRCS_FOLDER)/*$(SRCS_EXT)
-BINS_FOLDER=Bins
+BINS_FOLDER=Bins.nosync
 BINS=$(BINS_FOLDER)/*.o
 ENTRYPOINT_FILE=$(SRCS_FOLDER)/TESTING.cc
 ## Flags
+FLAGS_STRIP_GEN=
+FLAGS_STRIP_MAC=-S
+FLAGS_STRIP_LIN=--strip-all
+
+FLAGS_STRIP=$(FLAGS_STRIP_GEN)
 FLAGS_MAIN=-std=c++17
 FLAGS_OBJ=-std=c++17 -fPIC
 FLAGS_SHARED=-shared
@@ -61,9 +66,11 @@ endif
 ### OS Specific Assignments ###
 ifeq ($(RUNNING_OS), Darwin)
 	CC = $(CC_MAC)
+	FLAGS_STRIP = $(FLAGS_STRIP_MAC)
 endif
 ifeq ($(RUNNING_OS), Linux)
 	CC = $(CC_LIN)
+	FLAGS_STRIP = $(FLAGS_STRIP_LIN)
 endif
 
 ### Platspec Defaults ###
@@ -82,7 +89,7 @@ $(BINS_FOLDER)/%.o: $(SRCS_FOLDER)/%$(SRCS_EXT)
 
 shared: $(BINS)
 	$(CC) $(FLAGS_MAIN) $(FLAGS_WARN) $(FLAGS_SHARED) $(BINS) -o $(LIB_NAME)
-	strip $(LIB_NAME)
+	strip $(LIB_NAME) $(FLAGS_STRIP)
 
 clear:
 	rm -f $(BINS) $(BIN_NAME) $(LIB_NAME)

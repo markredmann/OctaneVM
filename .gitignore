@@ -2,4 +2,5 @@
 .vscode
 Source/a.out
 Source/Demo.cc
+Bins.nosync/
 Doxy*
