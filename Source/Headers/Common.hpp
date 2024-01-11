@@ -227,8 +227,8 @@ namespace Octane {
     /// @return True if both Addresses
     /// contain equal memory, otherwise false.
     ////////////////////////////////////////
-    extern bool QuickCmp    (const void* A,      const void* B, 
-                             const u32 ALen = 0, const u32 BLen = 0) noexcept;
+    extern bool QuickCmp    (const void* A, const void* B,
+                             const u32 ALen = 0) noexcept;
     
 }
 
