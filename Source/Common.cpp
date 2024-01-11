@@ -52,8 +52,7 @@ namespace Octane {
         return Len;
     }
 
-    bool QuickCmp(const void* _A, const void* _B, u32 Len = 0)
-    noexcept
+    bool QuickCmp(const void* _A, const void* _B, u32 Len) noexcept
     {
         const u8* A = (const u8*)_A;
         const u8* B = (const u8*)_B;
@@ -72,4 +71,21 @@ namespace Octane {
 
         return true;
     }
+
+    //////////////// TODO: /////////////////
+    /// Probably just replace this with a
+    /// direct call to memcpy(), as it would
+    /// likely be faster and more portable.
+    ////////////////////////////////////////
+    
+    void QuickCopy   (const void* _Src, void* _Dest, u32 Len) noexcept
+    {
+        const u8* Src  = (const u8*)_Src;
+        u8*       Dest = (u8*)_Dest;
+        const u8* End = Src + Len;
+
+        while ( Src != End )
+            *(Dest++) = *(Src++);
+    }
+
 }

@@ -1,6 +1,6 @@
 #include "Headers/Common.hpp"
 #include "Headers/CoreMemory.hpp"
-// #include "Headers/HybridAllocator.hpp"
+#include "Headers/FlatStorage.hpp"
 #include <iostream>
 #include <memory>
 
@@ -22,8 +22,63 @@ class DemoType {
 int main(void) {
     CoreAllocator Memory;
 
-    int* a = Memory.Request<int>(1, DEFAULT_ALLOC_FLAGS, 42);
-    cout << *a << '\n';
+    FlatStorage Device;
+
+    Device.Init(&Memory);
+    Device.Log();
+
+    StorageRequest Request;
+    Request.Type = SymbolType::DATA;
+    Request.Key = "HelloWorld";
+
+    SRError Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "GoodbyeWorld";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "WorldOfGoo";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "WorldOfPoo";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "RosettaHSI";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "OctaneVM";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "Rosetta.ExpressLang";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "Console.WriteLine";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+    Request.Key = "Console.ReadLine";
+    Result = Device.AssignSymbol(Request);
+    std::cout << (int)Result << '\n';
+
+
+    Device.Log();
+
+    Symbol* Resolve = Device.LookupSymbol("Console.WriteLine");
+    std::cout << Resolve << '\n';
+
+    Device.DeleteSymbol("RosettaHSI");
+    Resolve = Device.LookupSymbol("RosettaHSI");
+    std::cout << Resolve << '\n';
+    Device.Log();
+
+    // int* a = Memory.Request<int>(1, DEFAULT_ALLOC_FLAGS, 42);
+    // cout << *a << '\n';
     // HyChunk Chunk;
     // Chunk.Init(&Memory);
     // cout << "--- CHUNK INIT ---\n";

@@ -95,6 +95,15 @@ namespace Octane {
         0, // IsHyAlloc 
         0, // IsLiAlloc 
     };
+
+    static constexpr const AllocFlags SYSTEM_ALLOC_FLAGS = {
+        0, // IsFree    
+        0, // IsConst   
+        1, // IsSys     
+        0, // IsNonVital
+        0, // IsHyAlloc 
+        0, // IsLiAlloc 
+    };
     
     /// @brief A struct containing metadata
     /// regarding an Allocation returned

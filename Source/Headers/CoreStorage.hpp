@@ -83,36 +83,23 @@ namespace Octane {
     /// members or internal functionality for
     /// different implementations of `StorgeDevice`
     ////////////////////////////////////////
-    class Symbol {
-        protected:
-            /// What is the Type of this `Symbol`?
-            SymbolType m_Type;
-            /// If `m_Type` is `SymbolType::EXTENDED`, this will
-            /// denote the extended Type. This is
-            /// set and maintained by third-party
-            /// implementations and/or runtimes.
-            /// Custom `StorageDevice` implementations
-            /// may also use this for internal purposes.
-            u8         m_ExtendedType;
-            /// A pointer to the actual contents of this `Symbol`.
-            void*      m_Value;
-        public:
-            constexpr OctVM_SternInline
-            SymbolType GetType(void) const noexcept
-                { return m_Type; }
-            
-            constexpr OctVM_SternInline
-            u8 GetExtendedType(void) const noexcept
-                { return m_ExtendedType; }
+    struct Symbol {
+        /// What is the Type of this `Symbol`?
+        SymbolType Type;
+        /// If `Type` is `SymbolType::EXTENDED`, this will
+        /// denote the extended Type. This is
+        /// set and maintained by third-party
+        /// implementations and/or runtimes.
+        /// Custom `StorageDevice` implementations
+        /// may also use this for internal purposes.
+        u32         ExtendedType;
+        /// A pointer to the actual contents of this `Symbol`.
+        void*      Value;
 
-            constexpr OctVM_SternInline
-            void* GetValue(void) const noexcept
-                { return m_Value; }
-
-            template <typename Type>
-            constexpr OctVM_SternInline
-            Type* GetValue(void) const noexcept
-                { return (Type*)m_Value; }
+        template <typename Type>
+        constexpr OctVM_SternInline
+        Type* CastValue(void) const noexcept
+            { return (Type*)Value; }
     };
 
 /// STORAGE:
@@ -161,8 +148,11 @@ namespace Octane {
         /// The Value is invalid and cannot be stored in this
         /// `StorageDevice`.
         INVALID_VALUE,
+        /// The `StorageDevice` is invalid and/or uninitialised.
+        INVALID_STORAGE,
         /// There is not enough memory to allocate space for
-        /// this `Symbol`.
+        /// this `Symbol`, or other underlying allocations
+        /// necessary for this implementation of `StorageDevice`.
         NOT_ENOUGH_SPACE,
     };
 

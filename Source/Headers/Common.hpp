@@ -188,7 +188,7 @@ namespace Octane {
     /// @brief Computes a simple SDBM numerical
     /// hash of the given block.
     /// @param Data The block of memory to compute a hash of.
-    /// @param DataLenThe length, in bytes, to 
+    /// @param DataLen The length, in bytes, to 
     /// compute from the given memory address. 
     /// If blank, or zero, the address will be 
     /// treated as a null-terminated string.
@@ -228,7 +228,14 @@ namespace Octane {
     /// contain equal memory, otherwise false.
     ////////////////////////////////////////
     extern bool QuickCmp    (const void* A, const void* B,
-                             const u32 ALen = 0) noexcept;
+                             u32 ALen = 0) noexcept;
+    
+    /// @brief Copies N-Bytes from Src to Dest
+    /// @param Src The Source Address
+    /// @param Dest The Destination Address
+    /// @param Len The amount of Bytes to copy
+    ////////////////////////////////////////
+    extern void QuickCopy   (const void* Src, void* Dest, u32 Len) noexcept;
     
 }
 
