@@ -77,6 +77,17 @@ int main(void) {
     std::cout << Resolve << '\n';
     Device.Log();
 
+    cout << "Object Allocations : " << Memory.GetObjectAllocations() << '\n';
+    cout << "System Allocations : " << Memory.GetSystemAllocations() << '\n';
+    cout << "All Allocations    : " << Memory.GetTotalAllocations()  << '\n';
+
+    Device.Free();
+    cout << "--- FREED ---\n";
+    cout << "Object Allocations : " << Memory.GetObjectAllocations() << '\n';
+    cout << "System Allocations : " << Memory.GetSystemAllocations() << '\n';
+    cout << "All Allocations    : " << Memory.GetTotalAllocations()  << '\n';
+
+
     // int* a = Memory.Request<int>(1, DEFAULT_ALLOC_FLAGS, 42);
     // cout << *a << '\n';
     // HyChunk Chunk;

@@ -552,6 +552,32 @@ namespace Octane {
                 { m_LastError = MEMORY_OK; }
             
             /// @brief Returns the total count in bytes
+            /// of all global Object data and/or
+            /// non-internal runtime VM allocations 
+            /// from this CoreAllocator.
+            /// @return The count in bytes. If the
+            /// result is a negative value, there
+            /// was a severe error that occured.
+            /// See MemoryError for more details.
+            ////////////////////////////////////////
+            constexpr OctVM_SternInline
+            i64 GetObjectAllocations(void) const noexcept
+                { return m_ObjectAllocations; }
+
+            /// @brief Returns the total count in bytes
+            /// of all internal system allocations
+            /// from this CoreAllocator.
+            /// @return The count in bytes. If the
+            /// result is a negative value, there
+            /// was a severe error that occured.
+            /// See MemoryError for more details.
+            ////////////////////////////////////////
+            constexpr OctVM_SternInline
+            i64 GetSystemAllocations(void) const noexcept
+                { return m_SystemAllocations; }
+
+
+            /// @brief Returns the total count in bytes
             /// of all active Allocations from this
             /// CoreAllocator.
             /// @return The count in bytes. If the

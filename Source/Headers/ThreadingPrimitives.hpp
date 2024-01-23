@@ -29,11 +29,28 @@
 #include <mutex>
 
 namespace Octane {
-    /// @brief Mutual Exclusion Lock.
-    /// Provided by the Standard Template
-    /// Library.
+    /// @brief Mutual Exclusion Lock. 
+    /// Wrapper for the one provided by the
+    /// Standard Template Library.
     ////////////////////////////////////////
-    using Mutex = std::mutex;
+    class Mutex {
+        private:
+            /// The internal Mutex
+            std::mutex m_Mutex;
+            /// Is the Mutex locked?
+            bool       m_Locked = false;
+        public:
+            constexpr OctVM_SternInline
+            bool IsLocked(void) const noexcept
+                { return m_Locked; }
+            
+            OctVM_SternInline
+            void Lock(void) noexcept
+                { m_Mutex.lock();   m_Locked = true;}
+            OctVM_SternInline
+            void Unlock(void) noexcept
+                { m_Mutex.unlock(); m_Locked = false;}
+    };
     
     /// @brief RAII-based Mutex locker.
     ////////////////////////////////////////
@@ -41,8 +58,6 @@ namespace Octane {
         private:
             // A Reference to the Mutex to lock.
             Mutex& m_Mutex;
-            // Is the Mutex locked?
-            bool   m_Locked;
         public:
 
             /// @brief Initialises this Locker.
@@ -54,9 +69,9 @@ namespace Octane {
             ////////////////////////////////////////
             OctVM_SternInline 
             RAIIMutex(Mutex& _Mutex, bool AutoLock = true) noexcept
-            : m_Mutex{_Mutex}, m_Locked{AutoLock} {
-                if (AutoLock)
-                    m_Mutex.lock();
+            : m_Mutex{_Mutex} {
+                if ( AutoLock )
+                    m_Mutex.Lock();
             }
             
             OctVM_SternInline ~RAIIMutex(void)
@@ -65,19 +80,15 @@ namespace Octane {
             /// @brief Manually lock the stored Mutex.
             ////////////////////////////////////////
             OctVM_SternInline void Lock(void) noexcept {
-                if (!m_Locked) {
-                    m_Mutex.lock();
-                    m_Locked = true;
-                }
+                if ( !m_Mutex.IsLocked() )
+                    m_Mutex.Lock();
             }
 
             /// @brief Manually unlock the stored Mutex.
             ////////////////////////////////////////
             OctVM_SternInline void Unlock(void) noexcept {
-                if (m_Locked) {
-                    m_Mutex.unlock();
-                    m_Locked = false;
-                }
+                if ( m_Mutex.IsLocked() )
+                    m_Mutex.Unlock();
             }
     };
 }

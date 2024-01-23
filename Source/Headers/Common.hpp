@@ -58,7 +58,7 @@
 
 #ifndef OCTVM_DONT_PERFORM_TESTS
 /// --- REQUIRED TESTS ---
-//  If these do NOT pass, OctaneVM will NOT supported on the current platform. 
+/// If these do NOT pass, OctaneVM will NOT supported on the current platform. 
 
     #if CHAR_BIT != 8
         #error \
@@ -94,11 +94,11 @@
         64-bit integers.
     #endif
 
-    #if (__SIZEOF_DOUBLE__ != 8) || (__SIZEOF_FLOAT__ !=4)
+    #if (__SIZEOF_DOUBLE__ != 8) || (__SIZEOF_FLOAT__ != 4)
         #error \
         [COMPAT ERROR] : ((__SIZEOF__DOUBLE !=8) || (__SIZEOF_FLOAT__ !=4)) : \
         OctaneVM is NOT supported on platforms without fixed-width \
-        floating point numbers.
+        floating points or doubles.
     #endif
 
 /** ! --- REQUIRED TESTS --- **/

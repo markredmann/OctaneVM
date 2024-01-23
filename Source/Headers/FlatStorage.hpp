@@ -117,11 +117,15 @@ namespace Octane {
             /// @param Request A reference to a `StorageRequest`
             /// struct which defines which attributes are to 
             /// be used to initialise this `Symbol`
-            /// @return `SRError::OK on success.
-            /// Review `SRError` for the list of
+            /// @return On success, a pointer to the newly
+            /// allocated `Symbol`  is returned, and result of
+            /// `StorageDevice::GetLastError` is set to `SRError::OK`
+            /// On failure, a nullptr is returned, and
+            /// `StorageDevice::GetLastError` will return the
+            /// error value. Review `SRError` for the list of
             /// return values
             ////////////////////////////////////////
-            SRError AssignSymbol(StorageRequest& Request) 
+            Symbol* AssignSymbol(StorageRequest& Request) 
             noexcept override final;
             
             /// @brief Retrieves a `Symbol` stored at

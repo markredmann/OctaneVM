@@ -179,6 +179,7 @@ void FlatStorage::Log(bool LogEmpty) noexcept
 MemoryError FlatStorage::Init(CoreAllocator* Allocator) noexcept
 {
     m_Allocator = Allocator;
+    m_LastError = SRError::OK;
     
     if ( ! InitMap() )
         return m_Allocator->GetLastError();
@@ -187,26 +188,31 @@ MemoryError FlatStorage::Init(CoreAllocator* Allocator) noexcept
 
 /// ASSIGNSYMBOL:
 ////////////////////////////////////////
-SRError FlatStorage::AssignSymbol(StorageRequest& Request)  noexcept
+Symbol* FlatStorage::AssignSymbol(StorageRequest& Request)  noexcept
 {
     // Ensure this StorageDevice and the key are valid 
     if ( !m_Map || !m_Allocator )
-        return SRError::INVALID_STORAGE;
+        { m_LastError = SRError::INVALID_STORAGE;
+          return nullptr;}
+        
     
     u32 KeyLen = QuickStrLen(Request.Key);
     if ( KeyLen > FSSymbol::MAX_KEY_SIZE )
-        return SRError::INVALID_KEY;
+        { m_LastError = SRError::INVALID_KEY; 
+          return nullptr; }
     
     // If we don't have enough (estimated) space, grow our Map
     if ( m_MapUsage + 1 >= m_MapSize ) {
         if ( !GrowMap() )
-            return SRError::NOT_ENOUGH_SPACE;
+            { m_LastError = SRError::NOT_ENOUGH_SPACE;
+              return nullptr; }
     }
 
     // Allocate and initalise our new Symbol
     FSSymbol* Symbol = m_Allocator->Request<FSSymbol>();
     if ( !Symbol ) // Most likely cause of a null ret is OOM.
-        return SRError::NOT_ENOUGH_SPACE;
+        { m_LastError = SRError::NOT_ENOUGH_SPACE;
+          return nullptr; }
     
     Symbol->Type         = Request.Type;
     Symbol->ExtendedType = Request.ExtendedType;
@@ -217,7 +223,8 @@ SRError FlatStorage::AssignSymbol(StorageRequest& Request)  noexcept
     Symbol->KeyHash = QuickSDBM(Request.Key, KeyLen);
     if ( !Symbol->Key ) {
         m_Allocator->Release<FSSymbol>(Symbol);
-        return SRError::NOT_ENOUGH_SPACE;
+        m_LastError = SRError::NOT_ENOUGH_SPACE;
+        return nullptr;
     }
     QuickCopy(Request.Key, Symbol->Key, KeyLen + 1);
 
@@ -226,12 +233,14 @@ SRError FlatStorage::AssignSymbol(StorageRequest& Request)  noexcept
     if ( !IsNewEntry ) { // Symbol already existed
         m_Allocator->Release<char>(Symbol->Key);
         m_Allocator->Release<FSSymbol>(Symbol);
-        return SRError::SYMBOL_EXISTS;
+        m_LastError = SRError::SYMBOL_EXISTS;
+        return nullptr;
     }
     
     // All clear!
     m_MapUsage++;
-    return SRError::OK;
+    m_LastError = SRError::OK;
+    return Symbol;
 }
 
 Symbol* FlatStorage::LookupSymbol(const char* Key) noexcept
@@ -253,7 +262,7 @@ Symbol* FlatStorage::LookupSymbol(const char* Key) noexcept
     while (Slot) {
         if ( Slot->KeyHash == KeyHash 
                            && QuickCmp(Slot->Key, Key, KeyLen) )
-        return Slot;
+            return Slot;
 
         Slot = Slot->CollisonNext;
     }

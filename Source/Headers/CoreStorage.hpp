@@ -167,17 +167,27 @@ namespace Octane {
     /// API, see `FlatStorage`, or `StaticFlatStorage`.
     ////////////////////////////////////////
     class StorageDevice {
+        protected:
+            SRError m_LastError;
         public:
+            /// @return An `SRError` value denoting whether the assignment
+            /// was successful, and if not, why it failed. Review the
+            /// documentation for `SRError` for more information.
+            ////////////////////////////////////////
+            constexpr OctVM_SternInline
+            SRError GetLastError(void) const noexcept
+                { return m_LastError; }
+            
             /// @brief Assign a `Symbol` to a key for VM
             /// executables to lookup and retrieve during
             /// execution.
             /// @param Request A small struct with fields denoting
             /// how this `Symbol` should be stored, created, and accessed.
-            /// @return An `SRError` value denoting whether the assignment
-            /// was successful, and if not, why it failed. Review the
-            /// documentation for `SRError` for more information.
+            /// @return A pointer to the `Symbol` that was just created.
+            /// If the return value was nullptr, then an error has occurred
+            /// and MUST be checked with `StorageDevice::GetLastError`
             ////////////////////////////////////////
-            virtual SRError AssignSymbol(StorageRequest& Request) noexcept = 0;
+            virtual Symbol* AssignSymbol(StorageRequest& Request) noexcept = 0;
             /// @brief Retrieve a `Symbol` from a given Key.
             /// @param Key A null-terminated string used to store and/or
             /// retrieve a `Symbol` at the given Key.
