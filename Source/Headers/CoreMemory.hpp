@@ -195,7 +195,8 @@ namespace Octane {
             /// @brief Prints metadata regarding this
             /// Allocation to std::cout.
             ////////////////////////////////////////
-            OctVM_SternInline void Log(const char* const Prefix = "") const noexcept
+            OctVM_SternInline void Log(const char* const Prefix = "") const
+            noexcept
                 { (As._HeaderPtr - 1)->Log(Prefix); }
 
             /// @brief Casts the Address into a 
@@ -412,7 +413,13 @@ namespace Octane {
             ///  4: Validating Memory
             Mutex       m_AllocLock;
         public:
-            constexpr static const u64 MAX_ALLOC_SIZE = ToGiB(4);
+            /// @brief The maximum contiguous allocation
+            /// allowed by the OctaneVM. Note that
+            /// this does NOT mean a limited 32-bit
+            /// address space. It only refers to
+            /// the size of a single allocation
+            ////////////////////////////////////////
+            constexpr static const u64 MAX_ALLOC_SIZE = 0xFFFFFFFF;
             
             /// @brief Validates the Memory of this Allocator.
             /// Effectively just ensures that the internal 

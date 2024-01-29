@@ -88,4 +88,13 @@ namespace Octane {
             *(Dest++) = *(Src++);
     }
 
+    void QuickSet    (u8 Value, void* _Dest, u32 Len) noexcept
+    {
+        u8*       Dest = (u8*)_Dest;
+        const u8* End = Dest + Len;
+
+        while ( Dest != End )
+            *(Dest++) = Value;
+    }
+
 }

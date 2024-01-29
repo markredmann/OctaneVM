@@ -131,11 +131,52 @@
     #define OctVM_SternPack __attribute__((__packed__))
 #endif /* OCTVM_NO_STERN_PACK */
 
+//////////////// TODO: /////////////////
+/// Very few systems use Big Endian, and
+/// Windows doesn't even support it...
+/// should we even bother? Considering
+/// shelving Big-Endian support due to
+/// all of the potential headache it
+/// could cause...
+/// REASONS:TO:SUPPORT:
+/// Old Mac OSX machines still running
+/// on PowerPC
+////////////////////////////////////////
+
+
+/// Unknown/Invalid Byte Order
+#define OCTVM_BYTEORDER_UNKNOWN 0
+/// Little-Endian Byte Order
+#define OCTVM_BYTEORDER_LE      1
+/// Big-Endian Byte Order
+#define OCTVM_BYTEORDER_BE      2
+
+//////////////////////// NOTE: ///////////////////////
+// This can be predefined during the compiling stage,
+// but OCTVM_SYS_BYTEORDER is REQUIRED to be defined
+//////////////////////////////////////////////////////
+#ifndef OCTVM_SYS_BYTEORDER
+    #if   defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        #define OCTVM_SYS_BYTEORDER OCTVM_BYTEORDER_BE
+    #elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        #define OCTVM_SYS_BYTEORDER OCTVM_BYTEORDER_LE
+    #else
+        #define OCTVM_SYS_BYTEORDER OCTVM_BYTEORDER_UNKNOWN
+    #endif
+#endif /* !OCTVM_SYS_BYTEORDER */
+
+/// Check that the Endianness is valid
+#if !defined(OCTVM_SYS_BYTEORDER) \
+    || OCTVM_SYS_BYTEORDER == OCTVM_BYTEORDER_UNKNOWN
+    #error \
+    [COMPAT ERROR] : !defined(OCTVM_SYS_BYTEORDER) / OCTVM_BYTEORDER_UNKNOWN: \
+    OctaneVM is only supported on Big-Endian or Little-Endian systems
+#endif /* !defined(OCTVM_SYS_BYTEORDER) || == OCTVM_BYTEORDER_UNKNOWN */
 
 #define OCTVM_VERSION_MAJOR 0
 #define OCTVM_VERSION_MINOR 0
 #define OCTVM_VERSION_PATCH 0
-#define OCTVM_VERSION_STRING    "0.0.0"
+#define OCTVM_VERSION_STRINGLIT "0.0.0"
 #define OCTVM_VERSION_STRINGLEN 5
 
 
@@ -236,7 +277,15 @@ namespace Octane {
     /// @param Len The amount of Bytes to copy
     ////////////////////////////////////////
     extern void QuickCopy   (const void* Src, void* Dest, u32 Len) noexcept;
-    
+
+    /// @brief Sets N-Bytes in Dest to the given Value
+    /// @param Value The value to set all bytes to
+    /// @param Dest The Destination Address
+    /// @param Len The amount of Bytes to Set
+    ////////////////////////////////////////
+    extern void QuickSet    (u8 Value, void* Dest, u32 Len) noexcept;
+
+
 }
 
 #endif /* !OCTVM_COMMON_HPP */

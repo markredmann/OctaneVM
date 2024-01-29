@@ -81,67 +81,67 @@ bool FlatStorage::InitMap(void) noexcept
 
 /// GROWMAP:
 ////////////////////////////////////////
-    bool FlatStorage::GrowMap(void) noexcept
-    {
-        // Allocate a new, larger map alongside our current map.
-        u32  NewMapSize = m_MapSize + MAP_STEPSIZE;
-        auto NewMap = m_Allocator->Request<FSSymbol*>
-            ( NewMapSize, SYSTEM_ALLOC_FLAGS, nullptr );
-        
-        if ( !NewMap )
-            return false;
-        
-        // Loop through our current map and transfer our values.
-        for( u32 i = 0; i < m_MapSize; i++ ) {
-            FSSymbol* Symbol = m_Map[i];
-            FSSymbol* CollisionNext;
+bool FlatStorage::GrowMap(void) noexcept
+{
+    // Allocate a new, larger map alongside our current map.
+    u32  NewMapSize = m_MapSize + MAP_STEPSIZE;
+    auto NewMap = m_Allocator->Request<FSSymbol*>
+        ( NewMapSize, SYSTEM_ALLOC_FLAGS, nullptr );
+    
+    if ( !NewMap )
+        return false;
+    
+    // Loop through our current map and transfer our values.
+    for( u32 i = 0; i < m_MapSize; i++ ) {
+        FSSymbol* Symbol = m_Map[i];
+        FSSymbol* CollisionNext;
 
-            while ( Symbol ) {
-                CollisionNext = Symbol->CollisonNext;
-                Symbol->CollisonNext = nullptr;
+        while ( Symbol ) {
+            CollisionNext = Symbol->CollisonNext;
+            Symbol->CollisonNext = nullptr;
 
-                AssignToIDX(NewMap, NewMapSize, Symbol);
+            AssignToIDX(NewMap, NewMapSize, Symbol);
 
-                Symbol = CollisionNext;
-            }
+            Symbol = CollisionNext;
         }
-
-
-        // Free our old map and set our new one in its place.
-        // Note: This is only freeing the array of Symbols,
-        // not the Symbols themselves. For this. see `FreeMap`
-        m_Allocator->Release<FSSymbol*>(m_Map);
-        m_Map = NewMap;
-        m_MapSize = NewMapSize;
-
-        return true;
     }
+
+
+    // Free our old map and set our new one in its place.
+    // Note: This is only freeing the array of Symbols,
+    // not the Symbols themselves. For this. see `FreeMap`
+    m_Allocator->Release<FSSymbol*>(m_Map);
+    m_Map = NewMap;
+    m_MapSize = NewMapSize;
+
+    return true;
+}
 
 /// FREEMAP:
 ////////////////////////////////////////
-    void FlatStorage::FreeMap(void) noexcept
-    {
-        // Iterate through every Symbol and free it
-        for ( u32 i = 0; i < m_MapSize; i++ ) {
-            FSSymbol* Symbol = m_Map[i];
-            FSSymbol* CollisionNext;
+void FlatStorage::FreeMap(void) noexcept
+{
+    // Iterate through every Symbol and free it
+    for ( u32 i = 0; i < m_MapSize; i++ ) {
+        FSSymbol* Symbol = m_Map[i];
+        FSSymbol* CollisionNext;
 
-            while ( Symbol ) {
-                CollisionNext = Symbol->CollisonNext;
+        while ( Symbol ) {
+            CollisionNext = Symbol->CollisonNext;
 
-                m_Allocator->Release<char>(Symbol->Key);
-                m_Allocator->Release<FSSymbol>(Symbol);
+            m_Allocator->Release<char>(Symbol->Key);
+            m_Allocator->Release<FSSymbol>(Symbol);
 
-                Symbol = CollisionNext;
-            }
+            Symbol = CollisionNext;
         }
-
-        // Free the map itself and null our values
-        m_Allocator->Release<FSSymbol*>(m_Map);
-        m_Map      = nullptr;
-        m_MapSize  = 0;
-        m_MapUsage = 0;
     }
+
+    // Free the map itself and null our values
+    m_Allocator->Release<FSSymbol*>(m_Map);
+    m_Map      = nullptr;
+    m_MapSize  = 0;
+    m_MapUsage = 0;
+}
 
 /// FLATSTORAGE:
 ////////////////////////////////////////

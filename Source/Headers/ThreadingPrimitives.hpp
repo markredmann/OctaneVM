@@ -25,6 +25,7 @@
 #ifndef OCTVM_THREADING_PRIMITIVES_HPP
 #define OCTVM_THREADING_PRIMITIVES_HPP 1
 
+#include "Common.hpp"
 #include <thread>
 #include <mutex>
 
@@ -91,6 +92,15 @@ namespace Octane {
                     m_Mutex.Unlock();
             }
     };
+
+    using IThread = std::thread;
+    //////////////// TODO: /////////////////
+    /// Implement
+    ////////////////////////////////////////
+    // class IThread {
+    //     private:
+    //         std::thread* m_SysThread;
+    // };
 }
 
 #endif /* !OCTVM_THREADING_PRIMITIVES_HPP */

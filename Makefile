@@ -50,7 +50,7 @@ FLAGS_MAIN=-std=c++17
 FLAGS_OBJ=-std=c++17 -fPIC
 FLAGS_SHARED=-shared
 FLAGS_WARN=-Wall -Wextra -Winline -pedantic -Wpedantic \
-		   -Wdisabled-optimization -Wnewline-eof
+		   -Wdisabled-optimization -Wnewline-eof -Wno-strict-aliasing
 
 ### OS Detection ###
 ifeq ($(OS), Windows_NT) 

@@ -1,92 +1,50 @@
 #include "Headers/Common.hpp"
 #include "Headers/CoreMemory.hpp"
 #include "Headers/FlatStorage.hpp"
+#include "Headers/ThreadMemory.hpp"
 #include <iostream>
 #include <memory>
 
 using std::cout;
 using namespace Octane;
 
-class DemoType {
-    public:
-        int x = 42;
-        DemoType(void)
-            { cout << "CONSTRUCTING!\n"; }
-        DemoType(int nX)
-            { x = nX;
-              cout << x << " : CONSTRUCTING!\n"; }
-        ~DemoType(void)
-            { cout << "DECONSTRUCTING!\n"; }
-};
-
 int main(void) {
     CoreAllocator Memory;
+    ThreadMemory Data;
 
-    FlatStorage Device;
+    Data.Init(Memory, 128, 128);
 
-    Device.Init(&Memory);
-    Device.Log();
+    cout << "New Frame : " << BoolStr( Data.LocalFrameNew() ) << '\n';
+    u32* Addr1 = (u32*)Data.LocalRequestBytes(4);
+    *Addr1 = 0xABCDEF98;
+    cout << "From Return " << (void*)Addr1 << " : " << std::hex << (int)*Addr1 << "\n";
+    Addr1 = (u32*)Data.LocalGetAtAddress(0);
+    cout << "From Access " << (void*)Addr1 << " : " << std::hex << (int)*Addr1 << "\n\n";
 
-    StorageRequest Request;
-    Request.Type = SymbolType::DATA;
-    Request.Key = "HelloWorld";
+    // New Frame
 
-    SRError Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
+    cout << "New Frame : " << BoolStr( Data.LocalFrameNew() ) << '\n';
+    u32* Addr2 = (u32*)Data.LocalRequestBytes(4);
+    *Addr2 = 0xCAFEBEEF;
+    cout << "From Return " << (void*)Addr2 << " : " << std::hex << (int)*Addr2 << "\n";
+    Addr2 = (u32*)Data.LocalGetAtAddress(0);
+    cout << "From Access " << (void*)Addr2 << " : " << std::hex << (int)*Addr2 << "\n\n";
+    
+    // Dropping Frame
+    Data.LocalFrameDrop();
+    cout << "--- DROPPED ---\n";
+    Addr1 = (u32*)Data.LocalGetAtAddress(0);
+    cout << "From Access " << (void*)Addr1 << " : " << std::hex << (int)*Addr1 << "\n\n";
 
-    Request.Key = "GoodbyeWorld";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
+    // Dropping Bytes
+    Data.LocalDropBytes(2);
+    cout << "--- DROPPED BYTES ---\n";
+    
+    Addr1 = (u32*)Data.LocalGetAtAddress(2);
+    // Expecting a segfault here!
+    cout << "From Access " << (void*)Addr1 << " : " << std::hex << (int)*Addr1 << "\n\n";
 
-    Request.Key = "WorldOfGoo";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-    Request.Key = "WorldOfPoo";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-    Request.Key = "RosettaHSI";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-    Request.Key = "OctaneVM";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-    Request.Key = "Rosetta.ExpressLang";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-    Request.Key = "Console.WriteLine";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-    Request.Key = "Console.ReadLine";
-    Result = Device.AssignSymbol(Request);
-    std::cout << (int)Result << '\n';
-
-
-    Device.Log();
-
-    Symbol* Resolve = Device.LookupSymbol("Console.WriteLine");
-    std::cout << Resolve << '\n';
-
-    Device.DeleteSymbol("RosettaHSI");
-    Resolve = Device.LookupSymbol("RosettaHSI");
-    std::cout << Resolve << '\n';
-    Device.Log();
-
-    cout << "Object Allocations : " << Memory.GetObjectAllocations() << '\n';
-    cout << "System Allocations : " << Memory.GetSystemAllocations() << '\n';
-    cout << "All Allocations    : " << Memory.GetTotalAllocations()  << '\n';
-
-    Device.Free();
-    cout << "--- FREED ---\n";
-    cout << "Object Allocations : " << Memory.GetObjectAllocations() << '\n';
-    cout << "System Allocations : " << Memory.GetSystemAllocations() << '\n';
-    cout << "All Allocations    : " << Memory.GetTotalAllocations()  << '\n';
-
+    Data.Free(Memory);
 
     // int* a = Memory.Request<int>(1, DEFAULT_ALLOC_FLAGS, 42);
     // cout << *a << '\n';
