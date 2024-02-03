@@ -343,6 +343,12 @@ namespace Octane {
     enum MemoryError : u8 {
         /// Memory is valid.
         MEMORY_OK,
+        /// The Allocator supplied is not supported by
+        /// the given context.
+        /// This is not an error that is ever thrown by `CoreAllocator`,
+        /// and is instead supplied by other classes or functions
+        /// that take in an Allocator instance.
+        MEMORY_INVALID_ALLOCATOR,
         /// The amount of total deallocations is
         /// greater than the amount of total allocations.
         /// This would mean that this Allocator is
@@ -458,9 +464,12 @@ namespace Octane {
             /// Count is not specified) and calls its
             /// default constructor.
             /// @param Count The amount of Objects of the
-            /// given Type to allocate. Ensure that th
+            /// given Type to allocate. Ensure that that the
+            /// total size does not exceed `CoreAllocator::MAX_ALLOC_SIZE`
             /// @param Flags A list of flags that will tell
             /// OctaneVM how to handle this memory internally.
+            /// @param Params A parameter list of arbitrary size
+            /// to be passed to `Type`'s constructor.
             /// @return A MemoryAddress pointing to
             /// the block if the Allocation was
             /// successful. Otherwise returns nullptr.
@@ -510,6 +519,9 @@ namespace Octane {
             template <typename Type>
             void          Release(Type* Address)                  noexcept
                 {
+                    if ( nullptr == Address)
+                        return;
+                    
                     MemoryAddress OriginalAddr = MemoryAddress(Address);
 
                     /// NOTE: This could cause serious problems
@@ -551,10 +563,10 @@ namespace Octane {
             MemoryError GetLastError(void) const noexcept
                 { return m_LastError; }
             
+            OctVM_SternInline
             /// @brief Clears the last error thrown by
             /// this Allocator, and sets it to MEMORY_OK.
             ////////////////////////////////////////
-            OctVM_SternInline
             void ClearLastError(void) noexcept
                 { m_LastError = MEMORY_OK; }
             

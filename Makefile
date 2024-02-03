@@ -46,11 +46,11 @@ FLAGS_STRIP_MAC=-S
 FLAGS_STRIP_LIN=--strip-all
 
 FLAGS_STRIP=$(FLAGS_STRIP_GEN)
-FLAGS_MAIN=-std=c++17
-FLAGS_OBJ=-std=c++17 -fPIC
-FLAGS_SHARED=-shared
+FLAGS_MAIN=-std=c++17 -fno-strict-aliasing
+FLAGS_OBJ=-std=c++17 -fPIC -fno-strict-aliasing
+FLAGS_SHARED=-shared -fno-strict-aliasing
 FLAGS_WARN=-Wall -Wextra -Winline -pedantic -Wpedantic \
-		   -Wdisabled-optimization -Wnewline-eof -Wno-strict-aliasing
+		   -Wdisabled-optimization -Wnewline-eof
 
 ### OS Detection ###
 ifeq ($(OS), Windows_NT) 

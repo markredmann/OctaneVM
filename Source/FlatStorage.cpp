@@ -65,16 +65,17 @@ noexcept
 
 /// INITMAP:
 ////////////////////////////////////////
-bool FlatStorage::InitMap(void) noexcept
+bool FlatStorage::InitMap(u32 MapSize, u32 StepSize) noexcept
 {
     // Allocate our map and zero the data
     m_Map = m_Allocator->Request<FSSymbol*>
-        ( MAP_BASESIZE, SYSTEM_ALLOC_FLAGS, nullptr );
+        ( MapSize, SYSTEM_ALLOC_FLAGS, nullptr );
     if ( !m_Map )
         return false;
     
-    m_MapSize  = MAP_BASESIZE;
     m_MapUsage = 0;
+    m_MapSize  = MapSize;
+    m_MapStep  = StepSize;
 
     return true;
 }
@@ -84,7 +85,7 @@ bool FlatStorage::InitMap(void) noexcept
 bool FlatStorage::GrowMap(void) noexcept
 {
     // Allocate a new, larger map alongside our current map.
-    u32  NewMapSize = m_MapSize + MAP_STEPSIZE;
+    u32  NewMapSize = m_MapSize + m_MapStep;
     auto NewMap = m_Allocator->Request<FSSymbol*>
         ( NewMapSize, SYSTEM_ALLOC_FLAGS, nullptr );
     
@@ -176,12 +177,13 @@ void FlatStorage::Log(bool LogEmpty) noexcept
 
 /// INIT:
 ////////////////////////////////////////
-MemoryError FlatStorage::Init(CoreAllocator* Allocator) noexcept
+MemoryError FlatStorage::Init(CoreAllocator& Allocator,
+                              u32 MapSize, u32 StepSize) noexcept
 {
-    m_Allocator = Allocator;
+    m_Allocator = &Allocator;
     m_LastError = SRError::OK;
     
-    if ( ! InitMap() )
+    if ( ! InitMap(MapSize, StepSize) )
         return m_Allocator->GetLastError();
     return MEMORY_OK;
 }

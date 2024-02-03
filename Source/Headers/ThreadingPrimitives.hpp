@@ -28,6 +28,7 @@
 #include "Common.hpp"
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 
 namespace Octane {
     /// @brief Mutual Exclusion Lock. 
@@ -94,6 +95,7 @@ namespace Octane {
     };
 
     using IThread = std::thread;
+    using Condvar = std::condition_variable;
     //////////////// TODO: /////////////////
     /// Implement
     ////////////////////////////////////////

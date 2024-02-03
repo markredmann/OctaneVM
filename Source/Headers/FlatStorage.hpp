@@ -72,15 +72,19 @@ namespace Octane {
             u32            m_MapUsage  = 0;
             /// The real amount of slots currently allocated
             u32            m_MapSize   = 0;
+            /// The amount of slots to grow by when reaching the cap
+            u32            m_MapStep   = 0;
 
             static bool AssignToIDX(FSSymbol** Map, u32 MapSize,
                                     FSSymbol* Sym) noexcept;
             
             /// @brief Initialises the internal HashMap
+            /// @param MapSize The amount of slots for the Map
+            /// @param StepSize The amount of slots to grow by
             /// @return True on successful allocation,
             /// false on OOM.
             ////////////////////////////////////////
-            bool InitMap(void) noexcept;
+            bool InitMap(u32 MapSize, u32 StepSize) noexcept;
             /// @brief Regreows the internal HashMap
             /// by `FlatStorage::MAP_STEPSIZE`
             /// @return True on successful allocation,
@@ -100,12 +104,18 @@ namespace Octane {
 
             /// @brief Allocates memory and initialises this
             /// StorageDevice
-            /// @param Allocator A pointer to the VM's
+            /// @param Allocator A reference to the VM's
             /// CoreAllocator
+            /// @param MapSize The amount of slots preallocated
+            /// for the internal HashMap
+            /// @param StepSize The amount of slots to grow by when
+            /// the internal HashMap begins to run out of space
             /// @return `MEMORY_OK` on successful initialisation.
             /// For other error returns, please see `MemoryError`
             ////////////////////////////////////////
-            MemoryError Init(CoreAllocator* Allocator) noexcept;
+            MemoryError Init(CoreAllocator& Allocator,
+                             u32 MapSize  = MAP_BASESIZE,
+                             u32 StepSize = MAP_STEPSIZE) noexcept;
             /// @brief Releases the memory of all stored
             /// `Symbol`s and other internal allocations
             ////////////////////////////////////////
